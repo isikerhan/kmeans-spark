@@ -38,6 +38,11 @@ public class Cluster {
 	public void setClusterNo(int clusterNo) {
 		this.clusterNo = clusterNo;
 	}
+	
+	@Override
+	public String toString() {
+		return String.format("Cluster %d", clusterNo);
+	}
 
 	@Override
 	public boolean equals(Object obj) {

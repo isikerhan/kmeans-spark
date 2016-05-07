@@ -19,7 +19,8 @@ public class KMeans {
 
 	private JavaSparkContext sparkContext;
 	private JavaRDD<Cluster> clusters;
-	private JavaPairRDD<Cluster, Vector<?>> clusterIndexes;
+	private JavaPairRDD<Cluster, Vector<?>> clusterMapping;
+
 	private int k;
 	private JavaRDD<Vector<?>> dataSource;
 	protected DistanceFunction distanceFunction = new EuclideanDistance();
@@ -29,6 +30,14 @@ public class KMeans {
 		this.sparkContext = sparkContext;
 		this.k = k;
 		this.dataSource = dataSource;
+	}
+	
+	public JavaPairRDD<Cluster, Vector<?>> getClusterMapping() {
+		return clusterMapping;
+	}
+
+	public void setClusterMapping(JavaPairRDD<Cluster, Vector<?>> clusterMapping) {
+		this.clusterMapping = clusterMapping;
 	}
 
 	public void initCentroids() {
@@ -55,7 +64,8 @@ public class KMeans {
 		};
 		JavaPairRDD<Cluster, Vector<?>> newClusterIndexes = dataSource.mapToPair(pairer);
 
-		boolean changed = !newClusterIndexes.join(clusterIndexes).map(t -> t._2._1.equals(t._2._2)).reduce((a, b) -> a && b);
+		boolean changed = !newClusterIndexes.join(clusterMapping).map(t -> t._2._1.equals(t._2._2))
+				.reduce((a, b) -> a && b);
 
 		if (changed)
 			recalculateClusters();
@@ -64,10 +74,10 @@ public class KMeans {
 
 	private void recalculateClusters() {
 
-		JavaPairRDD<Cluster, Integer> counts = clusterIndexes.mapToPair(t -> new Tuple2<>(t._1, 1))
+		JavaPairRDD<Cluster, Integer> counts = clusterMapping.mapToPair(t -> new Tuple2<>(t._1, 1))
 				.reduceByKey((a, b) -> a + b);
 
-		JavaPairRDD<Cluster, Vector<?>> sums = clusterIndexes.reduceByKey((a, b) -> a.add(b));
+		JavaPairRDD<Cluster, Vector<?>> sums = clusterMapping.reduceByKey((a, b) -> a.add(b));
 
 		JavaPairRDD<Cluster, Vector<?>> centroids = counts.join(sums)
 				.mapToPair(t -> new Tuple2<>(t._1, t._2._2.divide(t._2._1.doubleValue())));
@@ -81,18 +91,21 @@ public class KMeans {
 		// clusterIndexes.mapToPair(pairer);
 	}
 
-	// public double sumOfSquaredErrors(){
-	//
-	// double sum = 0.0f;
-	//
-	// for(Cluster c : getClusters()) {
-	// Vector<Double> centroid = c.getCentroid();
-	// for(Vector<?> v : c.getElements())
-	// sum += Math.pow(distanceFunction.distance(centroid, v), 2.0);
-	// }
-	//
-	// return sum;
-	// }
+	public double sumOfSquaredErrors() {
+
+		// double sum = 0.0f;
+		//
+		// for (Cluster c : getClusters()) {
+		// Vector<Double> centroid = c.getCentroid();
+		// for (Vector<?> v : c.getElements())
+		// sum += Math.pow(distanceFunction.distance(centroid, v), 2.0);
+		// }
+
+		Double sum = clusterMapping.map(t -> distanceFunction.distance(t._1.getCentroid(), t._2))
+				.reduce((a, b) -> a + b);
+
+		return sum.doubleValue();
+	}
 
 	// public Cluster[] getClusters() {
 	// return clusters;
@@ -102,20 +115,20 @@ public class KMeans {
 	// this.clusters = clusters;
 	// }
 
-	// @Override
-	// public String toString() {
-	// String nl = System.getProperty("line.separator");
-	// StringBuilder sb = new StringBuilder();
-	// for(int i = 0; i < getClusters().length; i++) {
-	// sb.append(String.format("********** Cluster %d **********" + nl, i));
-	// Cluster c = getClusters()[i];
-	// for(Vector<?> v : c.getElements())
-	// sb.append(v.toString() + nl);
-	// sb.append(nl);
-	// }
-	//
-	// sb.append(String.format("Sum of squared errors: %.2f.",
-	// sumOfSquaredErrors()));
-	// return sb.toString();
-	// }
+//	@Override
+//	public String toString() {
+//		String nl = System.getProperty("line.separator");
+//		StringBuilder sb = new StringBuilder();
+//		List<Cluster> clusters = this.clusters.collect();
+//		for (int i = 0; i < clusters.size(); i++) {
+//			sb.append(String.format("********** Cluster %d **********" + nl, i));
+//			Cluster c = clusters.get(i);
+//			for (Vector<?> v : c.getElements())
+//				sb.append(v.toString() + nl);
+//			sb.append(nl);
+//		}
+//
+//		sb.append(String.format("Sum of squared errors: %.2f.", sumOfSquaredErrors()));
+//		return sb.toString();
+//	}
 }

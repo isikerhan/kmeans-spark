@@ -2,7 +2,6 @@ package com.isikerhan.sparkexamples.ml.kmeans.runner;
 
 import java.io.File;
 import java.io.IOException;
-import java.io.PrintStream;
 import java.util.List;
 
 import org.apache.spark.SparkConf;
@@ -35,11 +34,6 @@ public class KMeansRunner {
 
 		File out = new File(f.getParent().toString() + "/out.txt");
 		out.createNewFile();
-		
-		PrintStream[] writers = new PrintStream[] {
-				System.out,
-				new PrintStream(out)
-		};
 
 		
 		SparkConf config = new SparkConf().setAppName("k-means");
@@ -56,14 +50,13 @@ public class KMeansRunner {
 		for (numberOfIterations = 0; kmeans.iterate()
 				&& numberOfIterations < maxNumberOfIterations; numberOfIterations++)
 			;
-
-		for(PrintStream writer : writers){
-			
-			writer.println(String.format("Execution time: %d ms.", System.currentTimeMillis() - t));
-			writer.println(String.format("Num of iterations: %d.", numberOfIterations));
-			writer.println(kmeans.toString());
-		}
-
+		
+		System.out.println(String.format("Execution time: %d ms", t));
+	
+		kmeans.getClusterMapping().groupByKey().saveAsTextFile(out.toString());
+		System.out.println("Result is saved as text file.");
+		
+		sc.stop();
 		System.exit(0);
 	}
 	
