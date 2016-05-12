@@ -2,6 +2,7 @@ package com.isikerhan.sparkexamples.ml.math;
 
 import java.io.File;
 import java.io.IOException;
+import java.io.Serializable;
 import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.List;
@@ -11,8 +12,10 @@ import org.apache.commons.csv.CSVParser;
 import org.apache.commons.csv.CSVRecord;
 
 @SuppressWarnings({"rawtypes", "unchecked"})
-public class Vector<N extends Number> {
+public class Vector<N extends Number> implements Serializable {
 	
+	private static final long serialVersionUID = 1L;
+
 	public static Vector<Double> zero(int size){
 		Double[] values = new Double[size];
 		for(int i = 0; i < size; i++)
@@ -91,11 +94,12 @@ public class Vector<N extends Number> {
 	@Override
 	public String toString() {
 		StringBuilder sb = new StringBuilder();
+		sb.append('(');
 		for(int i = 0; i < values.length; i++) {
-			sb.append(Double.toString(values[i].doubleValue()) + ", ");
+			String comma = (i == values.length - 1) ? "" : ", ";
+			sb.append(Double.toString(values[i].doubleValue()) + comma);
 		}
-		sb.replace(sb.length() - 2, sb.length() - 1, new String());
-		return sb.toString();
+		return sb.append(')').toString();
 	}
 	
 	public static List<Vector<? extends Number>> fromCsv(File file) throws IOException {

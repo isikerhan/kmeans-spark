@@ -9,6 +9,8 @@ import static java.lang.Math.abs;
 
 abstract class MinkowskiDistance implements DistanceFunction {
 
+	private static final long serialVersionUID = 1L;
+
 	@Override
 	public final double distance(Vector<?> p1, Vector<?> p2) {
 		int numOfDimensions;

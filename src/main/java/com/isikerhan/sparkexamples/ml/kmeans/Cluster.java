@@ -1,9 +1,12 @@
 package com.isikerhan.sparkexamples.ml.kmeans;
 
+import java.io.Serializable;
+
 import com.isikerhan.sparkexamples.ml.math.Vector;
 
-public class Cluster {
+public class Cluster implements Serializable{
 
+	private static final long serialVersionUID = 1L;
 	// private List<Vector<?>> elements;
 	private Vector<Double> centroid;
 	private int clusterNo;

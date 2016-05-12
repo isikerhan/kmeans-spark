@@ -4,18 +4,25 @@ import java.io.File;
 import java.io.IOException;
 import java.util.List;
 
+import org.apache.commons.io.FileUtils;
 import org.apache.spark.SparkConf;
 import org.apache.spark.api.java.JavaRDD;
 import org.apache.spark.api.java.JavaSparkContext;
 
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
 import com.isikerhan.sparkexamples.ml.kmeans.KMeans;
+import com.isikerhan.sparkexamples.ml.kmeans.serializer.KMeansSerializer;
 import com.isikerhan.sparkexamples.ml.math.Vector;
+
+import scala.Tuple2;
 
 public class KMeansRunner {
 
 	private static String filePath;
 	private static int maxNumberOfIterations = Integer.MAX_VALUE;
 	private static int k;
+	private static Gson gson = new GsonBuilder().registerTypeAdapter(KMeans.class, new KMeansSerializer()).create();
 
 	public static void main(String[] args) throws IOException {
 
@@ -32,9 +39,10 @@ public class KMeansRunner {
 			System.exit(1);
 		}
 
-		File out = new File(f.getParent().toString() + "/out.txt");
-		out.createNewFile();
-
+		String out = f.getParent().toString() + "/out";
+		File outDir = new File(out);
+		if(outDir.exists())
+			FileUtils.deleteDirectory(outDir);
 		
 		SparkConf config = new SparkConf().setAppName("k-means");
 		JavaSparkContext sc = new JavaSparkContext(config);
@@ -43,7 +51,7 @@ public class KMeansRunner {
 
 		KMeans kmeans = new KMeans(k, dataSet, sc);
 
-		long t = System.currentTimeMillis();
+		long execTime = System.currentTimeMillis();
 		kmeans.initCentroids();
 
 		int numberOfIterations;
@@ -51,10 +59,15 @@ public class KMeansRunner {
 				&& numberOfIterations < maxNumberOfIterations; numberOfIterations++)
 			;
 		
-		System.out.println(String.format("Execution time: %d ms", t));
+		execTime = System.currentTimeMillis() - execTime;
+		System.out.println(String.format("Execution time: %d ms", execTime));
+		System.out.println(String.format("Number of iterations: %d", numberOfIterations));
 	
-		kmeans.getClusterMapping().groupByKey().saveAsTextFile(out.toString());
+		kmeans.getClusterMapping().mapToPair(t -> new Tuple2<>(t._2(), t._1())).groupByKey().saveAsTextFile(out);
+		kmeans.getClusters().foreach(c -> System.out.println(c + ", " + c.getCentroid()));
+
 		System.out.println("Result is saved as text file.");
+		System.out.println(gson.toJson(kmeans, KMeans.class));
 		
 		sc.stop();
 		System.exit(0);
